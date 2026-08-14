@@ -187,7 +187,7 @@ export class MpdService {
       const current = await this.client.sendCommand('currentsong');
       const parsed = mpd.parseObject(current);
 
-      if ('file' in parsed && typeof parsed.file === 'string') {
+      if (!!parsed && 'file' in parsed && typeof parsed.file === 'string') {
         return parsed.file;
       }
 
