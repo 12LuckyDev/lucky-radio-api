@@ -1,0 +1,30 @@
+services:
+  lucky-radio-api:
+    image: lucky-radio-api:latest
+
+    container_name: lucky-radio-api
+
+    restart: unless-stopped
+
+    depends_on:
+      - mdp #mdp contener
+
+    environment:
+      NODE_ENV: production # production | development
+      CORS_ORIGIN: "http://1.2.3.4:8080,http://1.2.3.4:6000" # skip on NODE_ENV=development
+      MPD_HOST: mpd # default: localhost
+      MPD_PORT: 6600 # default: 6600
+      FAV_STATIONS_JSON: "[{\"name\":\"station\",\"url\":\"https://station.com/web.mp3\"}]"
+
+    ports:
+      - "3000:3000"
+
+    volumes:
+      - ../../data/radio-api:/app/data
+
+    healthcheck:
+      test: [ "CMD", "wget", "-qO-", "http://localhost:3000/health" ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

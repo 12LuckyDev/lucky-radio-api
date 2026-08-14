@@ -1,0 +1,25 @@
+# git
+.git
+.gitignore
+
+# node, npm, builds etc
+node_modules
+dist
+build
+npm-debug.log
+
+# docker
+Dockerfile
+compose*.yaml
+
+# db
+data
+
+# environment
+.env
+.env.*
+
+# other
+build.bat
+LICENSE
+README.md
