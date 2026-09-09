@@ -1,11 +1,11 @@
 import {
   PlayerStatusUpdateDTO,
   playerStatusUpdateDTOSchema,
-} from 'src/player/dto/player-status-update.dto';
+} from 'src/features/internet-radio/player/dto/player-status-update.dto';
 import {
   CurrentStationInfoDTO,
   currentStationInfoDTOSchema,
-} from 'src/stations/dto/current-station.dto';
+} from 'src/features/internet-radio/stations/dto/current-station.dto';
 
 export type AppEvent =
   | {

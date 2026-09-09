@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { PlayerController } from './player.controller';
 import { PlayerService } from './player.service';
-import { MpdModule } from 'src/mpd/mpd.module';
+import { MpdModule } from 'src/features/internet-radio/mpd/mpd.module';
 import { AppEventsModule } from 'src/app-events/app-events.module';
 
 @Module({

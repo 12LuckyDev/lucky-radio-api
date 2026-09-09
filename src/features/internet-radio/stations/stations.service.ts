@@ -7,7 +7,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { MpdService } from 'src/mpd/mpd.service';
+import { MpdService } from 'src/features/internet-radio/mpd/mpd.service';
 import { StationDTO } from './dto/station.dto';
 import { CurrentStationInfoDTO } from './dto/current-station.dto';
 import {

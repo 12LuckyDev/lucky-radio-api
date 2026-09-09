@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { asc, desc, eq, gt, lt } from 'drizzle-orm';
-import { DatabaseService } from '../../database/database.service';
-import { stationsTable } from '../../database/schema/stations.schema';
+import { DatabaseService } from '../../../../database/database.service';
+import { stationsTable } from '../../../../database/schema/stations.schema';
 import {
   CreateStationModel,
   StationModel,

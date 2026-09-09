@@ -1,12 +1,10 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
-import { PlayerModule } from './player/player.module';
 import { ConfigModule } from '@nestjs/config';
-import { MpdModule } from './mpd/mpd.module';
-import { StationsModule } from './stations/stations.module';
 import { DatabaseModule } from './database/database.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { SseModule } from './sse/sse.module';
+import { InternetRadioModule } from './features/internet-radio/internet-radio.module';
 
 @Module({
   imports: [
@@ -18,10 +16,8 @@ import { SseModule } from './sse/sse.module';
       delimiter: '.',
     }),
     DatabaseModule,
-    PlayerModule,
-    MpdModule,
-    StationsModule,
     SseModule,
+    InternetRadioModule,
   ],
   controllers: [AppController],
 })
