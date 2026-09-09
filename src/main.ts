@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ConfigService } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { INestApplication, Logger, LogLevel } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
@@ -52,13 +52,24 @@ function setupSwagger(app: INestApplication): void {
 }
 
 async function bootstrap() {
-  const app: INestApplication = await NestFactory.create(AppModule);
+  const configApp = await NestFactory.createApplicationContext(
+    ConfigModule.forRoot(),
+  );
+
+  const configService = configApp.get(ConfigService);
+  await configApp.close();
+
+  const app: INestApplication = await NestFactory.create(
+    AppModule.register({
+      features: {
+        addIRadioPrefix: configService.get('ADD_I_RADIO_PREFIX', false),
+      },
+    }),
+  );
 
   app.setGlobalPrefix('v1', {
     exclude: ['', 'health'],
   });
-
-  const configService = app.get(ConfigService);
 
   setupCors(app, configService);
   setupLogs(configService);
