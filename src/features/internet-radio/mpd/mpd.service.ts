@@ -4,9 +4,13 @@ import { MpdStatusModel } from './models/mpd-status.model';
 import { MpdConfigModel } from './models/mpd-config.model';
 import { BehaviorSubject } from 'rxjs';
 import { ConfigService } from '@nestjs/config';
+import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 
 const noMpdConnected = 'No MPD connected';
 const mpdError = 'MPD error';
+
+// TODO add "player" abstraction
+const PLAYER_TYPE = 'MPD';
 
 @Injectable()
 export class MpdService {
@@ -30,13 +34,24 @@ export class MpdService {
 
   private readonly config: MpdConfigModel;
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly eventEmitter: EventEmitter2,
+  ) {
     this.config = {
       host: this.configService.get<string>('MPD_HOST') ?? 'localhost',
       port: this.configService.get<number>('MPD_PORT') ?? 6600,
     };
 
     void this.connectMpd();
+  }
+
+  @OnEvent('global-player.playing')
+  public async handleStationsEvent(type: string): Promise<void> {
+    if (type !== PLAYER_TYPE) {
+      this.logger.log(`Player paused because "${type}" player start playing`);
+      await this.stopStream();
+    }
   }
 
   public get connected(): boolean {
@@ -212,7 +227,12 @@ export class MpdService {
     }
 
     const { state, volume } = status ?? { state: 'stop', volume: 0 };
-    if (this.stateSubject.value !== state) this.stateSubject.next(state);
+    if (this.stateSubject.value !== state) {
+      this.stateSubject.next(state);
+      if (state === 'play') {
+        this.eventEmitter.emit(`global-player.playing`, PLAYER_TYPE);
+      }
+    }
     if (this.volumeSubject.value !== volume) this.volumeSubject.next(volume);
 
     const url = await this.getCurrentUrl();

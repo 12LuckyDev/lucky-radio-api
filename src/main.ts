@@ -63,6 +63,9 @@ async function bootstrap() {
     AppModule.register({
       features: {
         addIRadioPrefix: configService.get('ADD_I_RADIO_PREFIX', false),
+        addSpotifyModule:
+          !!configService.get<string>('LIBRESPOT_URL') &&
+          !!configService.get<string>('LIBRESPOT_WS_URL'),
       },
     }),
   );
