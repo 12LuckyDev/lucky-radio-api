@@ -9,9 +9,9 @@ import {
   ParseIntPipe,
 } from '@nestjs/common';
 import {
-  playerStatusDTOSchema,
-  type PlayerStatusDTO,
-} from './dto/player-status.dto';
+  playerStatusWithTypeDTOSchema,
+  PlayerStatusWithTypeDTO,
+} from '../../shared/player';
 import { PlayerService } from './player.service';
 import {
   ApiBadRequestResponse,
@@ -32,9 +32,9 @@ export class PlayerController {
   @ApiResponse({
     status: 200,
     description: 'Current player status',
-    schema: playerStatusDTOSchema,
+    schema: playerStatusWithTypeDTOSchema,
   })
-  async getStatus(): Promise<PlayerStatusDTO> {
+  async getStatus(): Promise<PlayerStatusWithTypeDTO> {
     return this.playerService.getStatus();
   }
 

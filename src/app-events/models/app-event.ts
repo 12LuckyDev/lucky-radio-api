@@ -1,7 +1,7 @@
 import {
-  PlayerStatusUpdateDTO,
-  playerStatusUpdateDTOSchema,
-} from 'src/features/internet-radio/player/dto/player-status-update.dto';
+  playerStatusWithTypeDTOSchema,
+  PlayerStatusWithTypeDTO,
+} from 'src/features/shared/player';
 import {
   CurrentStationInfoDTO,
   currentStationInfoDTOSchema,
@@ -18,7 +18,7 @@ export type AppEvent =
     }
   | {
       type: 'player.status-update';
-      data: PlayerStatusUpdateDTO;
+      data: PlayerStatusWithTypeDTO;
     };
 
 export const appEventSchema = {
@@ -59,7 +59,7 @@ export const appEventSchema = {
           enum: ['player.status-update'],
           example: 'player.status-update',
         },
-        data: playerStatusUpdateDTOSchema,
+        data: playerStatusWithTypeDTOSchema,
       },
       required: ['type', 'data'],
     },

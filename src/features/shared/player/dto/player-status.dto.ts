@@ -1,15 +1,25 @@
+export interface PlayerStatusData {
+  volume: number;
+  state: 'play' | 'stop' | 'pause';
+}
+
 export interface PlayerStatusDTO {
   connected: boolean;
   lastConnectingAttempt: Date;
-  status: {
-    volume: number;
-    state: 'play' | 'stop' | 'pause';
-  } | null;
+  status: PlayerStatusData | null;
 }
 
-export const playerStatusDTOSchema = {
+export interface PlayerStatusWithTypeDTO extends PlayerStatusDTO {
+  type: string;
+}
+
+export const playerStatusWithTypeDTOSchema = {
   type: 'object',
   properties: {
+    type: {
+      type: 'string',
+      example: 'MPD',
+    },
     connected: {
       type: 'boolean',
       example: true,

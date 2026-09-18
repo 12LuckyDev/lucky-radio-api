@@ -1,37 +1,13 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
-import type { PlayerStatusDTO } from './dto/player-status.dto';
+import type { PlayerStatusWithTypeDTO } from '../../shared/player';
 import { MpdService } from '../mpd/mpd.service';
-import { combineLatest, map, Observable } from 'rxjs';
-import { PlayerStatusUpdateDTO } from './dto/player-status-update.dto';
-import { AppEventsService } from 'src/app-events/app-events.service';
 
 @Injectable()
 export class PlayerService {
-  private readonly playerStatusUpdate$: Observable<PlayerStatusUpdateDTO>;
+  constructor(private readonly mpdService: MpdService) {}
 
-  constructor(
-    private readonly mpdService: MpdService,
-    private readonly appEventsService: AppEventsService,
-  ) {
-    this.playerStatusUpdate$ = combineLatest([
-      this.mpdService.connected$,
-      this.mpdService.state$,
-      this.mpdService.volume$,
-    ]).pipe(
-      map(([connected, state, volume]) => ({ connected, state, volume })),
-    );
-
-    this.playerStatusUpdate$.subscribe((data) =>
-      this.appEventsService.emit({ type: 'player.status-update', data }),
-    );
-  }
-
-  public async getStatus(): Promise<PlayerStatusDTO> {
-    return {
-      connected: this.mpdService.connected,
-      lastConnectingAttempt: this.mpdService.lastConnectingAttempt,
-      status: await this.mpdService.getStatus(),
-    };
+  public async getStatus(): Promise<PlayerStatusWithTypeDTO> {
+    return this.mpdService.getStatus();
   }
 
   public async playStream(url: string): Promise<void> {
