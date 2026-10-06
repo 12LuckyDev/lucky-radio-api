@@ -5,7 +5,6 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { LibrespotEvent, LibrespotStatus } from './models';
 import { GoLibrespotApiClient } from './go-librespot-api-client';
 import { BehaviorSubject } from 'rxjs';
@@ -34,7 +33,6 @@ export class GoLibrespotSocketWatcher implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly config: ConfigService,
     private readonly librespot: GoLibrespotApiClient,
-    private readonly eventEmitter: EventEmitter2,
   ) {
     const urlConfig = this.config.get<string>('LIBRESPOT_WS_URL');
     if (urlConfig === undefined) {
@@ -76,7 +74,6 @@ export class GoLibrespotSocketWatcher implements OnModuleInit, OnModuleDestroy {
     }
 
     this.updateStatusFromEvent(event);
-    this.eventEmitter.emit(`go-librespot.${event.type}`, event.data);
   }
 
   private updateStatusFromEvent(event: LibrespotEvent): void {

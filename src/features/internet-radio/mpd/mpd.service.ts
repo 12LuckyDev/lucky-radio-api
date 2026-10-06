@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { MpdClient } from './mpd.client';
-import { PlayerClientConsumer } from 'src/features/shared/player';
+import { CommandResult, PlayerClientConsumer } from 'src/features/shared';
 import { AppEventsService } from 'src/app-events/app-events.service';
 
 @Injectable()
@@ -18,10 +18,15 @@ export class MpdService extends PlayerClientConsumer {
   }
 
   @OnEvent('global-player.playing')
-  public async handlePlayerEvent(type: string): Promise<void> {
+  private async handlePlayerEvent(type: string): Promise<void> {
     await this.processPlayerEvent(type, async () => {
       await this.mpdClient.stopStream();
     });
+  }
+
+  @OnEvent('global-volume.change-command')
+  private async handleVolumeChangeCommand(volume: number): Promise<void> {
+    await this.setVolume(volume);
   }
 
   public get url(): string | null {
@@ -32,11 +37,11 @@ export class MpdService extends PlayerClientConsumer {
     return this.mpdClient.url$;
   }
 
-  public async playStream(url: string): Promise<true | { error: string }> {
+  public async playStream(url: string): Promise<CommandResult> {
     return this.mpdClient.playStream(url);
   }
 
-  public async stopStream(): Promise<true | { error: string }> {
+  public async stopStream(): Promise<CommandResult> {
     return this.mpdClient.stopStream();
   }
 }

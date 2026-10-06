@@ -11,7 +11,7 @@ import {
 import {
   playerStatusWithTypeDTOSchema,
   PlayerStatusWithTypeDTO,
-} from '../../shared/player';
+} from '../../shared';
 import { PlayerService } from './player.service';
 import {
   ApiBadRequestResponse,

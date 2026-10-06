@@ -85,7 +85,7 @@ export class StationsService {
   }
 
   @OnEvent('station.*')
-  public handleStationsEvent() {
+  private handleStationsEvent() {
     this.stationsUpdated$.next();
   }
 

@@ -2,7 +2,11 @@ import mpd, { MPD } from 'mpd2';
 import { MpdStatusModel } from './models/mpd-status.model';
 import { MpdConfigModel } from './models/mpd-config.model';
 import { BehaviorSubject, combineLatest, map, Observable } from 'rxjs';
-import { PlayerClient, PlayerStatusDTO } from 'src/features/shared/player';
+import {
+  CommandResult,
+  PlayerClient,
+  PlayerStatusDTO,
+} from 'src/features/shared';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
@@ -61,7 +65,7 @@ export class MpdClient extends PlayerClient {
     };
   }
 
-  public async playStream(url: string): Promise<true | { error: string }> {
+  public async playStream(url: string): Promise<CommandResult> {
     if (this.client === null) {
       this.logger.warn(`[playStream] ${noMpdConnected}`);
       return { error: noMpdConnected };
@@ -85,7 +89,7 @@ export class MpdClient extends PlayerClient {
     return true;
   }
 
-  public async stopStream(): Promise<true | { error: string }> {
+  public async stopStream(): Promise<CommandResult> {
     if (this.client === null) {
       this.logger.warn(`[stopStream] ${noMpdConnected}`);
       return { error: noMpdConnected };
@@ -103,7 +107,7 @@ export class MpdClient extends PlayerClient {
     return true;
   }
 
-  public async setVolume(volume: number): Promise<true | { error: string }> {
+  public async setVolume(volume: number): Promise<CommandResult> {
     if (this.client === null) {
       this.logger.warn(`[setVolume] ${noMpdConnected}`);
       return { error: noMpdConnected };

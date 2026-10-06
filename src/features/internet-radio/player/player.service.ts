@@ -1,5 +1,5 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
-import type { PlayerStatusWithTypeDTO } from '../../shared/player';
+import type { PlayerStatusWithTypeDTO } from '../../shared';
 import { MpdService } from '../mpd/mpd.service';
 
 @Injectable()

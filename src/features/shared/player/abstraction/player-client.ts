@@ -1,6 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { PlayerStatusDTO } from '../dto/player-status.dto';
+import { CommandResult } from '../../command-result';
 
 export abstract class PlayerClient {
   protected readonly logger: Logger;
@@ -35,5 +36,5 @@ export abstract class PlayerClient {
   abstract get statusUpdate$(): Observable<PlayerStatusDTO>;
 
   abstract getStatus(): Promise<PlayerStatusDTO>;
-  abstract setVolume(volume: number): Promise<true | { error: string }>;
+  abstract setVolume(volume: number): Promise<CommandResult>;
 }

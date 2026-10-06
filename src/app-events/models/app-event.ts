@@ -1,7 +1,7 @@
 import {
   playerStatusWithTypeDTOSchema,
   PlayerStatusWithTypeDTO,
-} from 'src/features/shared/player';
+} from 'src/features/shared';
 import {
   CurrentStationInfoDTO,
   currentStationInfoDTOSchema,

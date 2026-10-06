@@ -1,4 +1,4 @@
-import { PlayerStatusData } from 'src/features/shared/player';
+import { PlayerStatusData } from 'src/features/shared';
 import { LibrespotStatus } from '../models';
 
 export class GoLibrespotStatusMapper {

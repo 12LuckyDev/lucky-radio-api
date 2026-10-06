@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { PlayerClient, PlayerStatusDTO } from 'src/features/shared/player';
+import {
+  CommandResult,
+  PlayerClient,
+  PlayerStatusDTO,
+} from 'src/features/shared';
 import { GoLibrespotApiClient } from './go-librespot-api-client';
 import { GoLibrespotSocketWatcher } from './go-librespot-socket-watcher';
 import { GoLibrespotStatusMapper } from './mappers/go-librespot-status-mapper';
@@ -51,7 +55,7 @@ export class GoLibrespotClient extends PlayerClient {
     }
   }
 
-  public async setVolume(volume: number): Promise<true | { error: string }> {
+  public async setVolume(volume: number): Promise<CommandResult> {
     try {
       await this.apiClient.setVolume({ volume });
       return true;

@@ -4,6 +4,7 @@ import { PlayerStatusWithTypeDTO } from '../dto/player-status.dto';
 import { AppEventsService } from 'src/app-events/app-events.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { distinctUntilChanged, filter, map } from 'rxjs';
+import { CommandResult } from '../../command-result';
 
 const noClientProvided = '[PlayerClientConsumer] No Player client provided';
 
@@ -73,7 +74,7 @@ export abstract class PlayerClientConsumer {
     return { ...status, type: this.playerType };
   }
 
-  public async setVolume(volume: number): Promise<true | { error: string }> {
+  public async setVolume(volume: number): Promise<CommandResult> {
     if (this.client === null) {
       this.logger.fatal(noClientProvided);
       throw new Error(noClientProvided);
