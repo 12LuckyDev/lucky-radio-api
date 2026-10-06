@@ -13,9 +13,10 @@ import { CurrentStationInfoDTO } from './dto/current-station.dto';
 import {
   distinctUntilChanged,
   merge,
-  mergeMap,
   Observable,
   Subject,
+  switchMap,
+  tap,
 } from 'rxjs';
 import type { IStationsRepository } from './repositories/stations.repository.interface';
 import { STATIONS_REPOSITORY } from './repositories/stations.repository.interface';
@@ -31,6 +32,16 @@ import { stationModelToDTO } from './mappers/station-model-to-dto';
 import { OnEvent } from '@nestjs/event-emitter';
 import { areCurrentStationInfoEqual } from './utils/const are-current-station-info-equal';
 import { AppEventsService } from 'src/app-events/app-events.service';
+import { CacheService } from 'src/cache/cache.service';
+
+const CACHED_STATION_ID = 'CACHED_STATION_ID';
+
+const NO_STATION = { station: null, hasPrev: false, hasNext: false };
+const UNKNOWN_STATION = {
+  station: { id: null },
+  hasPrev: false,
+  hasNext: false,
+};
 
 @Injectable()
 export class StationsService {
@@ -45,18 +56,23 @@ export class StationsService {
     private readonly mpdService: MpdService,
     private readonly configService: ConfigService,
     private readonly appEventsService: AppEventsService,
+    private readonly cacheService: CacheService,
   ) {
     this.currentStationUpdate$ = this.currentStationUpdate$ = merge(
       this.mpdService.url$,
       this.stationsUpdated$,
     ).pipe(
-      mergeMap(async () => await this.getCurrentStationInfo()),
+      switchMap(async () => await this.getCurrentStationInfo()),
       distinctUntilChanged(areCurrentStationInfoEqual),
+      tap(({ station }) => {
+        if (station?.id)
+          void this.cacheService.set(CACHED_STATION_ID, station?.id);
+      }),
     );
 
-    this.currentStationUpdate$.subscribe((data) =>
-      this.appEventsService.emit({ type: 'stations.current-update', data }),
-    );
+    this.currentStationUpdate$.subscribe((data) => {
+      this.appEventsService.emit({ type: 'stations.current-update', data });
+    });
 
     this.stationsUpdated$.subscribe(() =>
       this.appEventsService.emit({
@@ -107,14 +123,20 @@ export class StationsService {
 
   public async getCurrentStationInfo(): Promise<CurrentStationInfoDTO> {
     const url = this.mpdService.url;
+    let station: StationModel | null = null;
 
-    if (url === null) return { station: null, hasPrev: false, hasNext: false };
+    if (url !== null) {
+      station = await this.stationsRepository.getStationByUrl(url);
+    } else {
+      const cachedStationId =
+        await this.cacheService.get<string>(CACHED_STATION_ID);
 
-    const station = await this.stationsRepository.getStationByUrl(url);
+      if (cachedStationId === null) return NO_STATION;
 
-    if (station === null) {
-      return { station: { id: null }, hasPrev: false, hasNext: false };
+      station = await this.stationsRepository.getStationById(cachedStationId);
     }
+
+    if (station === null) return UNKNOWN_STATION;
 
     const { idx } = station;
     return {

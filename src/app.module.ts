@@ -6,6 +6,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { SseModule } from './sse/sse.module';
 import { FeaturesModule } from './features/features.module';
 import { FeaturesOptions } from './features/features-options';
+import { CacheModule } from './cache/cache.module';
 
 @Module({})
 export class AppModule {
@@ -21,6 +22,7 @@ export class AppModule {
           delimiter: '.',
         }),
         DatabaseModule,
+        CacheModule,
         SseModule,
         FeaturesModule.forRoot(features),
       ],
