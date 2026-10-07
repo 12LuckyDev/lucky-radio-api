@@ -19,9 +19,4 @@ export class PlayerService {
     const result = await this.mpdService.stopStream();
     if (result !== true) throw new InternalServerErrorException(result.error);
   }
-
-  public async setVolume(volume: number): Promise<void> {
-    const result = await this.mpdService.setVolume(volume);
-    if (result !== true) throw new InternalServerErrorException(result.error);
-  }
 }

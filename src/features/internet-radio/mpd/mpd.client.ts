@@ -21,7 +21,6 @@ export class MpdClient extends PlayerClient {
   private readonly stateSubject = new BehaviorSubject<
     'play' | 'stop' | 'pause'
   >('stop');
-  private readonly volumeSubject = new BehaviorSubject<number>(0);
   private readonly urlSubject = new BehaviorSubject<string | null>(null);
 
   public readonly url$ = this.urlSubject.asObservable();
@@ -47,21 +46,21 @@ export class MpdClient extends PlayerClient {
     return combineLatest([
       this.connected$,
       this.stateSubject.asObservable(),
-      this.volumeSubject.asObservable(),
     ]).pipe(
-      map(([connected, state, volume]) => ({
+      map(([connected, state]) => ({
         connected,
         lastConnectingAttempt: this.lastConnectingAttempt,
-        status: { state, volume },
+        status: { state },
       })),
     );
   }
 
   public async getStatus(): Promise<PlayerStatusDTO> {
+    const mpdStatus = await this.getMpdStatus();
     return {
       connected: this.connected,
       lastConnectingAttempt: this.lastConnectingAttempt,
-      status: await this.getMpdStatus(),
+      status: mpdStatus !== null ? { state: mpdStatus.state } : null,
     };
   }
 
@@ -122,6 +121,11 @@ export class MpdClient extends PlayerClient {
     }
 
     return true;
+  }
+
+  public async getVolume(): Promise<number | null> {
+    const mpdStatus = await this.getMpdStatus();
+    return mpdStatus?.volume ?? null;
   }
 
   private async connectMpd(): Promise<void> {
@@ -223,7 +227,7 @@ export class MpdClient extends PlayerClient {
     if (this.stateSubject.value !== state) {
       this.stateSubject.next(state);
     }
-    if (this.volumeSubject.value !== volume) this.volumeSubject.next(volume);
+    this.changeVolume(volume);
 
     const url = await this.getCurrentUrl();
     if (this.urlSubject.value !== url) this.urlSubject.next(url);

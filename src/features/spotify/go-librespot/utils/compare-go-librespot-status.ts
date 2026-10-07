@@ -8,7 +8,5 @@ export function compareGoLibrespotStatus(
     return a === null && b === null;
   }
 
-  return (
-    a.stopped === b.stopped && a.paused === b.paused && a.volume === b.volume
-  );
+  return a.stopped === b.stopped && a.paused === b.paused;
 }

@@ -25,6 +25,8 @@ export class GoLibrespotClient extends PlayerClient {
     this.watcher.connected$.subscribe((connected) =>
       this.changeConnected(connected),
     );
+    // todo maybe optional parametr in super - volume$?
+    this.watcher.volume$.subscribe((volume) => this.changeVolume(volume));
   }
 
   public get statusUpdate$(): Observable<PlayerStatusDTO> {
@@ -62,6 +64,16 @@ export class GoLibrespotClient extends PlayerClient {
     } catch (ex) {
       this.logger.error(`[setVolume] ${goLibrespotError}`, ex);
       return { error: goLibrespotError };
+    }
+  }
+
+  public async getVolume(): Promise<number | null> {
+    try {
+      const volumeInfo = await this.apiClient.getVolume();
+      return volumeInfo.value;
+    } catch (ex) {
+      this.logger.error(`[getVolume] error during obtaining volume`, ex);
+      return null;
     }
   }
 }

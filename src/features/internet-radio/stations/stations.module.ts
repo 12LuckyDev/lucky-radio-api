@@ -4,10 +4,9 @@ import { MpdModule } from 'src/features/internet-radio/mpd/mpd.module';
 import { StationsController } from './stations.controller';
 import { STATIONS_REPOSITORY } from './repositories/stations.repository.interface';
 import { StationsRepository } from './repositories/stations.repository';
-import { AppEventsModule } from 'src/app-events/app-events.module';
 
 @Module({
-  imports: [MpdModule, AppEventsModule],
+  imports: [MpdModule],
   providers: [
     StationsService,
     {

@@ -3,10 +3,7 @@ import {
   Get,
   Query,
   BadRequestException,
-  Param,
   Post,
-  Put,
-  ParseIntPipe,
 } from '@nestjs/common';
 import {
   playerStatusWithTypeDTOSchema,
@@ -16,7 +13,6 @@ import { PlayerService } from './player.service';
 import {
   ApiBadRequestResponse,
   ApiOperation,
-  ApiParam,
   ApiQuery,
   ApiResponse,
 } from '@nestjs/swagger';
@@ -84,51 +80,7 @@ export class PlayerController {
     return this.stop();
   }
 
-  @Get('volume/:volume')
-  @ApiOperation({
-    summary: 'Set player volume',
-  })
-  @ApiParam({
-    name: 'volume',
-    type: Number,
-    description: 'Volume level',
-    example: 50,
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Volume changed',
-  })
-  async getVolume(
-    @Param('volume', new ParseIntPipe()) volume: number,
-  ): Promise<void> {
-    await this.volume(volume);
-  }
-
-  @Put('volume/:volume')
-  @ApiOperation({
-    summary: 'Set player volume',
-  })
-  @ApiParam({
-    name: 'volume',
-    type: Number,
-    description: 'Volume level',
-    example: 50,
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Volume changed',
-  })
-  async putVolume(
-    @Param('volume', new ParseIntPipe()) volume: number,
-  ): Promise<void> {
-    await this.volume(volume);
-  }
-
   private async stop(): Promise<void> {
     await this.playerService.stopStream();
-  }
-
-  private async volume(volume: number): Promise<void> {
-    await this.playerService.setVolume(volume);
   }
 }

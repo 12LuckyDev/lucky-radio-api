@@ -4,6 +4,7 @@ import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { MpdClient } from './mpd.client';
 import { CommandResult, PlayerClientConsumer } from 'src/features/shared';
 import { AppEventsService } from 'src/app-events/app-events.service';
+import { PlayersRegistry } from 'src/features/global/players-registry';
 
 @Injectable()
 export class MpdService extends PlayerClientConsumer {
@@ -11,10 +12,16 @@ export class MpdService extends PlayerClientConsumer {
     private readonly mpdClient: MpdClient,
     private readonly eventEmitter: EventEmitter2,
     private readonly appEventsService: AppEventsService,
+    private readonly playersRegistry: PlayersRegistry,
   ) {
     super('MPD', MpdService.name);
 
-    this.setClient(this.mpdClient, this.eventEmitter, this.appEventsService);
+    this.setClient(
+      this.mpdClient,
+      this.eventEmitter,
+      this.appEventsService,
+      this.playersRegistry,
+    );
   }
 
   @OnEvent('global-player.playing')
@@ -22,11 +29,6 @@ export class MpdService extends PlayerClientConsumer {
     await this.processPlayerEvent(type, async () => {
       await this.mpdClient.stopStream();
     });
-  }
-
-  @OnEvent('global-volume.change-command')
-  private async handleVolumeChangeCommand(volume: number): Promise<void> {
-    await this.setVolume(volume);
   }
 
   public get url(): string | null {

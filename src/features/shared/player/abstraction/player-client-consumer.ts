@@ -4,7 +4,7 @@ import { PlayerStatusWithTypeDTO } from '../dto/player-status.dto';
 import { AppEventsService } from 'src/app-events/app-events.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { distinctUntilChanged, filter, map } from 'rxjs';
-import { CommandResult } from '../../command-result';
+import { PlayersRegistry } from 'src/features/global/players-registry';
 
 const noClientProvided = '[PlayerClientConsumer] No Player client provided';
 
@@ -19,12 +19,18 @@ export abstract class PlayerClientConsumer {
     this.logger = new Logger(name);
   }
 
+  public get clientInstance(): PlayerClient | null {
+    return this.client;
+  }
+
   protected setClient(
     client: PlayerClient,
     eventEmitter: EventEmitter2,
     appEventsService: AppEventsService,
+    playersRegistry: PlayersRegistry,
   ): void {
     this.client = client;
+    playersRegistry.register(this.playerType, client);
 
     const observable$ = this.client.statusUpdate$;
 
@@ -35,6 +41,7 @@ export abstract class PlayerClientConsumer {
       });
     });
 
+    // TODO MOVE to FeatureResponseTracker
     observable$
       .pipe(
         map(({ status }) => status?.state === 'play'),
@@ -72,13 +79,5 @@ export abstract class PlayerClientConsumer {
     }
     const status = await this.client.getStatus();
     return { ...status, type: this.playerType };
-  }
-
-  public async setVolume(volume: number): Promise<CommandResult> {
-    if (this.client === null) {
-      this.logger.fatal(noClientProvided);
-      throw new Error(noClientProvided);
-    }
-    return this.client.setVolume(volume);
   }
 }

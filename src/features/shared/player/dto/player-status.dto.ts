@@ -1,5 +1,4 @@
 export interface PlayerStatusData {
-  volume: number;
   state: 'play' | 'stop' | 'pause';
 }
 
@@ -33,17 +32,13 @@ export const playerStatusWithTypeDTOSchema = {
       type: 'object',
       nullable: true,
       properties: {
-        volume: {
-          type: 'number',
-          example: 50,
-        },
         state: {
           type: 'string',
           enum: ['play', 'stop', 'pause'],
           example: 'play',
         },
       },
-      required: ['volume', 'state'],
+      required: ['state'],
     },
   },
   required: ['connected', 'lastConnectingAttempt', 'status'],

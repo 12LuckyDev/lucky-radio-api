@@ -7,9 +7,12 @@ export abstract class PlayerClient {
   protected readonly logger: Logger;
 
   private _lastConnectingAttempt: Date = new Date();
-  private readonly connectedSubject = new BehaviorSubject<boolean>(false);
 
-  protected readonly connected$ = this.connectedSubject.asObservable();
+  private readonly connectedSubject = new BehaviorSubject<boolean>(false);
+  public readonly connected$ = this.connectedSubject.asObservable();
+
+  private readonly volumeSubject = new BehaviorSubject<number>(0);
+  public readonly volume$ = this.volumeSubject.asObservable();
 
   constructor(name: string) {
     this.logger = new Logger(name);
@@ -33,8 +36,15 @@ export abstract class PlayerClient {
     }
   }
 
+  protected changeVolume(newValue: number): void {
+    if (this.volumeSubject.value !== newValue) {
+      this.volumeSubject.next(newValue);
+    }
+  }
+
   abstract get statusUpdate$(): Observable<PlayerStatusDTO>;
 
   abstract getStatus(): Promise<PlayerStatusDTO>;
+  abstract getVolume(): Promise<number | null>;
   abstract setVolume(volume: number): Promise<CommandResult>;
 }

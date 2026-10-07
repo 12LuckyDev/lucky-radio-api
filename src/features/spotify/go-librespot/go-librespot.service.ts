@@ -4,6 +4,7 @@ import { PlayerClientConsumer } from 'src/features/shared';
 import { AppEventsService } from 'src/app-events/app-events.service';
 import { GoLibrespotClient } from './go-librespot.client';
 import { GoLibrespotApiClient } from './go-librespot-api-client';
+import { PlayersRegistry } from 'src/features/global/players-registry';
 
 @Injectable()
 export class GoLibrespotService extends PlayerClientConsumer {
@@ -12,6 +13,7 @@ export class GoLibrespotService extends PlayerClientConsumer {
     private readonly goLibrespotClient: GoLibrespotClient,
     private readonly eventEmitter: EventEmitter2,
     private readonly appEventsService: AppEventsService,
+    private readonly playersRegistry: PlayersRegistry,
   ) {
     super('GO_LIBRESPOT', GoLibrespotService.name);
 
@@ -19,6 +21,7 @@ export class GoLibrespotService extends PlayerClientConsumer {
       this.goLibrespotClient,
       this.eventEmitter,
       this.appEventsService,
+      this.playersRegistry,
     );
   }
 
@@ -27,10 +30,5 @@ export class GoLibrespotService extends PlayerClientConsumer {
     await this.processPlayerEvent(type, async () => {
       await this.goLibrespotApiClient.pause();
     });
-  }
-
-  @OnEvent('global-volume.change-command')
-  private async handleVolumeChangeCommand(volume: number): Promise<void> {
-    await this.setVolume(volume);
   }
 }

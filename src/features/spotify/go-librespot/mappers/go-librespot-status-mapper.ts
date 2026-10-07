@@ -9,10 +9,9 @@ export class GoLibrespotStatusMapper {
       return null;
     }
 
-    const { volume, stopped, paused } = status;
+    const { stopped, paused } = status;
 
     return {
-      volume,
       state: stopped ? 'stop' : paused ? 'pause' : 'play',
     };
   }

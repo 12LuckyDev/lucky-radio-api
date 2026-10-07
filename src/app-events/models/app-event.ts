@@ -19,6 +19,10 @@ export type AppEvent =
   | {
       type: 'player.status-update';
       data: PlayerStatusWithTypeDTO;
+    }
+  | {
+      type: 'global-volume-change';
+      data: number | { error: string };
     };
 
 export const appEventSchema = {

@@ -7,7 +7,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { LibrespotEvent, LibrespotStatus } from './models';
 import { GoLibrespotApiClient } from './go-librespot-api-client';
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, distinctUntilChanged, map } from 'rxjs';
 import { WebSocketClient } from './web-socket-client';
 
 @Injectable()
@@ -21,6 +21,12 @@ export class GoLibrespotSocketWatcher implements OnModuleInit, OnModuleDestroy {
     null,
   );
   public readonly status$ = this.statusSubject.asObservable();
+
+  public readonly volume$ = this.status$.pipe(
+    map((s) => (s === null ? { volume: 0 } : s)),
+    map((s) => s.volume),
+    distinctUntilChanged(),
+  );
 
   private readonly lastConnectingAttemptSubject = new BehaviorSubject<Date>(
     new Date(),
