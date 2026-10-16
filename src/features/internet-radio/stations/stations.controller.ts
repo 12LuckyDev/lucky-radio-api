@@ -10,7 +10,6 @@ import {
   Delete,
   HttpCode,
   HttpStatus,
-  ParseIntPipe,
 } from '@nestjs/common';
 import { StationsService } from './stations.service';
 import { StationDTO, stationDTOSchema } from './dto/station.dto';
@@ -30,6 +29,7 @@ import type {
   UpdateStationDTO,
 } from './dto/station-schemas.dto';
 import { ApiBody, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
+import { CommandResultMapper } from 'src/features/shared';
 
 @Controller('stations')
 export class StationsController {
@@ -48,7 +48,8 @@ export class StationsController {
     },
   })
   async getStations(): Promise<StationDTO[]> {
-    return await this.stationsService.getStations();
+    const result = await this.stationsService.getStations();
+    return CommandResultMapper.map(result);
   }
 
   @Get('current')
@@ -61,63 +62,34 @@ export class StationsController {
     schema: currentStationInfoDTOSchema,
   })
   async getCurrentStations(): Promise<CurrentStationInfoDTO> {
-    return this.stationsService.getCurrentStationInfo();
+    const result = await this.stationsService.getCurrentStationInfo();
+    return CommandResultMapper.map(result);
   }
 
-  @Get(':index')
-  @ApiOperation({
-    summary: 'Play station by index',
-  })
-  @ApiParam({
-    name: 'index',
-    type: Number,
-    example: 0,
-    description: 'Station index',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Station playback started',
-  })
-  async playByIndex(
-    @Param('index', new ParseIntPipe()) index: number,
-  ): Promise<void> {
-    await this.stationsService.playStationByIndex(index);
-  }
-
-  @Post('play-next/:id')
+  @Post('play-next')
   @ApiOperation({
     summary: 'Play next station',
-  })
-  @ApiParam({
-    name: 'id',
-    type: String,
-    format: 'uuid',
-    description: 'Current station ID',
   })
   @ApiResponse({
     status: 200,
     description: 'Next station playback started',
   })
-  async playNext(@Param('id', new ParseUUIDPipe()) id: string): Promise<void> {
-    await this.stationsService.playNextStation(id);
+  async playNext(): Promise<void> {
+    const result = await this.stationsService.playNextStation();
+    CommandResultMapper.map(result);
   }
 
-  @Post('play-prev/:id')
+  @Post('play-prev')
   @ApiOperation({
     summary: 'Play previous station',
-  })
-  @ApiParam({
-    name: 'id',
-    type: String,
-    format: 'uuid',
-    description: 'Current station ID',
   })
   @ApiResponse({
     status: 200,
     description: 'Previous station playback started',
   })
-  async playPrev(@Param('id', new ParseUUIDPipe()) id: string): Promise<void> {
-    await this.stationsService.playPrevStation(id);
+  async playPrev(): Promise<void> {
+    const result = await this.stationsService.playPrevStation();
+    CommandResultMapper.map(result);
   }
 
   @Post('play/:id')
@@ -135,7 +107,8 @@ export class StationsController {
     description: 'Station playback started',
   })
   async playById(@Param('id', new ParseUUIDPipe()) id: string): Promise<void> {
-    await this.stationsService.playStationById(id);
+    const result = await this.stationsService.playStationById(id);
+    CommandResultMapper.map(result);
   }
 
   @Post()
@@ -153,7 +126,8 @@ export class StationsController {
   })
   @UsePipes(new ZodValidationPipe(createStationSchema))
   async createStation(@Body() station: CreateStationDTO): Promise<StationDTO> {
-    return this.stationsService.createStation(station);
+    const result = await this.stationsService.createStation(station);
+    return CommandResultMapper.map(result);
   }
 
   @Patch(':id')
@@ -179,7 +153,8 @@ export class StationsController {
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body(new ZodValidationPipe(updateStationSchema)) station: UpdateStationDTO,
   ): Promise<StationDTO> {
-    return this.stationsService.updateStation(id, station);
+    const result = await this.stationsService.updateStation(id, station);
+    return CommandResultMapper.map(result);
   }
 
   @Delete(':id')
@@ -200,6 +175,7 @@ export class StationsController {
   async deleteStation(
     @Param('id', new ParseUUIDPipe()) id: string,
   ): Promise<void> {
-    await this.stationsService.deleteStation(id);
+    const result = await this.stationsService.deleteStation(id);
+    CommandResultMapper.map(result);
   }
 }

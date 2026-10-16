@@ -1,12 +1,10 @@
 import { Logger } from '@nestjs/common';
-import { BehaviorSubject, Observable } from 'rxjs';
-import { PlayerStatusDTO } from '../dto/player-status.dto';
+import { BehaviorSubject } from 'rxjs';
 import { CommandResult } from '../../command-result';
+import { PlayerState } from '../models/player-state';
 
 export abstract class PlayerClient {
   protected readonly logger: Logger;
-
-  private _lastConnectingAttempt: Date = new Date();
 
   private readonly connectedSubject = new BehaviorSubject<boolean>(false);
   public readonly connected$ = this.connectedSubject.asObservable();
@@ -14,20 +12,11 @@ export abstract class PlayerClient {
   private readonly volumeSubject = new BehaviorSubject<number>(0);
   public readonly volume$ = this.volumeSubject.asObservable();
 
+  private readonly stateSubject = new BehaviorSubject<PlayerState>('stop');
+  public readonly state$ = this.stateSubject.asObservable();
+
   constructor(name: string) {
     this.logger = new Logger(name);
-  }
-
-  public get connected(): boolean {
-    return this.connectedSubject.value;
-  }
-
-  public get lastConnectingAttempt(): Date {
-    return this._lastConnectingAttempt;
-  }
-
-  protected set lastConnectingAttempt(value: Date) {
-    this._lastConnectingAttempt = value;
   }
 
   protected changeConnected(newValue: boolean): void {
@@ -42,9 +31,14 @@ export abstract class PlayerClient {
     }
   }
 
-  abstract get statusUpdate$(): Observable<PlayerStatusDTO>;
+  protected changeState(newValue: PlayerState): void {
+    if (this.stateSubject.value !== newValue) {
+      this.stateSubject.next(newValue);
+    }
+  }
 
-  abstract getStatus(): Promise<PlayerStatusDTO>;
+  abstract getState(): Promise<PlayerState>;
   abstract getVolume(): Promise<number | null>;
   abstract setVolume(volume: number): Promise<CommandResult>;
+  abstract forceStop(): Promise<void>;
 }

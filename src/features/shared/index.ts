@@ -1,6 +1,8 @@
-export * from './player/dto/player-status.dto';
-
-export * from './player/abstraction/player-client-consumer';
 export * from './player/abstraction/player-client';
+export * from './player/abstraction/player-service';
 
 export * from './command-result';
+export * from './command-result-mapper';
+
+export * from './player/models/player-state';
+export * from './player/dto/player-state.dto';

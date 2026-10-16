@@ -1,17 +1,10 @@
-import {
-  ConflictException,
-  HttpException,
-  Inject,
-  Injectable,
-  InternalServerErrorException,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
-import { MpdService } from 'src/features/internet-radio/mpd/mpd.service';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { StationDTO } from './dto/station.dto';
 import { CurrentStationInfoDTO } from './dto/current-station.dto';
 import {
   distinctUntilChanged,
+  filter,
+  map,
   merge,
   Observable,
   Subject,
@@ -33,14 +26,21 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { areCurrentStationInfoEqual } from './utils/const are-current-station-info-equal';
 import { AppEventsService } from 'src/app-events/app-events.service';
 import { CacheService } from 'src/cache/cache.service';
+import { CommandResult } from 'src/features/shared';
+import { CurrentStationModel } from './models/current-station.model';
+import { MpdClient } from '../mpd/mpd.client';
 
 const CACHED_STATION_ID = 'CACHED_STATION_ID';
 
-const NO_STATION = { station: null, hasPrev: false, hasNext: false };
-const UNKNOWN_STATION = {
-  station: { id: null },
-  hasPrev: false,
-  hasNext: false,
+const stationNotDefined = 'Station not defined';
+const stationNotDefinedResult: CommandResult = {
+  error: stationNotDefined,
+  type: 'notFound',
+};
+const noCurrentStation = 'No station is currently playing';
+const noCurrentStationResult: CommandResult = {
+  error: noCurrentStation,
+  type: 'notFound',
 };
 
 @Injectable()
@@ -53,16 +53,22 @@ export class StationsService {
   constructor(
     @Inject(STATIONS_REPOSITORY)
     private readonly stationsRepository: IStationsRepository,
-    private readonly mpdService: MpdService,
+    private readonly mpdClient: MpdClient,
     private readonly configService: ConfigService,
     private readonly appEventsService: AppEventsService,
     private readonly cacheService: CacheService,
   ) {
     this.currentStationUpdate$ = this.currentStationUpdate$ = merge(
-      this.mpdService.url$,
+      this.mpdClient.url$,
       this.stationsUpdated$,
     ).pipe(
       switchMap(async () => await this.getCurrentStationInfo()),
+      map((current) =>
+        typeof current !== 'boolean' && 'result' in current
+          ? current.result
+          : null,
+      ),
+      filter((current) => current !== null),
       distinctUntilChanged(areCurrentStationInfoEqual),
       tap(({ station }) => {
         if (station?.id)
@@ -89,70 +95,95 @@ export class StationsService {
     this.stationsUpdated$.next();
   }
 
-  public async playStationById(id: string): Promise<void> {
+  public async playStationById(id: string): Promise<CommandResult> {
     const station = await this.stationsRepository.getStationById(id);
-    if (!station) throw new NotFoundException('Station not defined');
+    if (!station) return stationNotDefinedResult;
 
-    const result = await this.mpdService.playStream(station.url);
-    if (result !== true) throw new InternalServerErrorException(result.error);
+    return this.mpdClient.playStream(station.url);
   }
 
-  public async playStationByIndex(index: number): Promise<void> {
-    const station = await this.stationsRepository.getStationByIdx(index);
-    if (!station) throw new NotFoundException('Station not defined');
-
-    const result = await this.mpdService.playStream(station.url);
-    if (result !== true) throw new InternalServerErrorException(result.error);
-  }
-
-  public async playNextStation(id: string): Promise<void> {
-    const current = await this.stationsRepository.getStationById(id);
-    if (current === null) throw new NotFoundException('Station not defined');
-
-    const next = await this.stationsRepository.getNext(current.idx);
-    if (next !== null) await this.mpdService.playStream(next.url);
-  }
-
-  public async playPrevStation(id: string): Promise<void> {
-    const current = await this.stationsRepository.getStationById(id);
-    if (current === null) throw new NotFoundException('Station not defined');
-
-    const prev = await this.stationsRepository.getPrev(current.idx);
-    if (prev !== null) await this.mpdService.playStream(prev.url);
-  }
-
-  public async getCurrentStationInfo(): Promise<CurrentStationInfoDTO> {
-    const url = this.mpdService.url;
-    let station: StationModel | null = null;
-
-    if (url !== null) {
-      station = await this.stationsRepository.getStationByUrl(url);
-    } else {
-      const cachedStationId =
-        await this.cacheService.get<string>(CACHED_STATION_ID);
-
-      if (cachedStationId === null) return NO_STATION;
-
-      station = await this.stationsRepository.getStationById(cachedStationId);
+  public async playNextStation(): Promise<CommandResult> {
+    const currentResult = await this.getCurrentStation();
+    if (typeof currentResult === 'boolean' || 'error' in currentResult) {
+      return currentResult;
     }
 
-    if (station === null) return UNKNOWN_STATION;
+    const station = currentResult.result;
+
+    if (station === null) return noCurrentStationResult;
+    if (station.id === null) return stationNotDefinedResult;
+
+    const next = await this.stationsRepository.getNext(station.idx);
+    return next === null
+      ? {
+          error: 'No next station',
+          type: 'forbidden',
+        }
+      : this.mpdClient.playStream(next.url);
+  }
+
+  public async playPrevStation(): Promise<CommandResult> {
+    const currentResult = await this.getCurrentStation();
+    if (typeof currentResult === 'boolean' || 'error' in currentResult) {
+      return currentResult;
+    }
+
+    const station = currentResult.result;
+
+    if (station === null) return noCurrentStationResult;
+    if (station.id === null) return stationNotDefinedResult;
+
+    const prev = await this.stationsRepository.getPrev(station.idx);
+    return prev === null
+      ? {
+          error: 'No prev station',
+          type: 'forbidden',
+        }
+      : this.mpdClient.playStream(prev.url);
+  }
+
+  public async getCurrentStationInfo(): Promise<
+    CommandResult<CurrentStationInfoDTO>
+  > {
+    const currentResult = await this.getCurrentStation();
+    if (typeof currentResult === 'boolean' || 'error' in currentResult) {
+      return currentResult;
+    }
+    const station = currentResult.result;
+
+    if (station === null || station.id === null) {
+      return {
+        result: {
+          station,
+          hasPrev: false,
+          hasNext: false,
+        },
+      };
+    }
 
     const { idx } = station;
+
     return {
-      station: stationModelToDTO(station),
-      hasPrev: !!(await this.stationsRepository.getPrev(idx)),
-      hasNext: !!(await this.stationsRepository.getNext(idx)),
+      result: {
+        station: stationModelToDTO(station),
+        hasPrev: !!(await this.stationsRepository.getPrev(idx)),
+        hasNext: !!(await this.stationsRepository.getNext(idx)),
+      },
     };
   }
 
-  public async getStations(): Promise<StationDTO[]> {
+  public async getStations(): Promise<CommandResult<StationDTO[]>> {
     const stations = await this.stationsRepository.getStations();
-    return stations.map(({ id, name, url }) => ({ id, name, url }));
+    return { result: stations.map(stationModelToDTO) };
   }
 
-  async createStation(station: CreateStationDTO): Promise<StationDTO> {
-    await this.validateUniqueness(station);
+  public async createStation(
+    station: CreateStationDTO,
+  ): Promise<CommandResult<StationDTO>> {
+    const unique = await this.validateUniqueness(station);
+    if (unique !== true) {
+      return unique as CommandResult<StationDTO>;
+    }
 
     const idx = await this.stationsRepository.getMaxIdx();
     const createModel: CreateStationModel = {
@@ -160,27 +191,34 @@ export class StationsService {
       idx: idx + 1,
     };
     try {
-      return stationModelToDTO(
-        await this.stationsRepository.createStation(createModel),
-      );
+      return {
+        result: stationModelToDTO(
+          await this.stationsRepository.createStation(createModel),
+        ),
+      };
     } catch (ex) {
       const msg = 'Error during creating new station';
       this.logger.error(`[createStation] ${msg}`, ex);
-      throw new InternalServerErrorException(msg);
+      return { error: msg };
     }
   }
 
-  async updateStation(
+  public async updateStation(
     id: string,
     station: UpdateStationDTO,
-  ): Promise<StationDTO> {
+  ): Promise<CommandResult<StationDTO>> {
     const existing = await this.stationsRepository.getStationById(id);
 
     if (!existing) {
-      throw new NotFoundException(`Station with id "${id}" not found`);
+      const msg = `Station with id "${id}" not found`;
+      this.logger.error(`[updateStation] ${msg}`);
+      return { error: msg, type: 'notFound' };
     }
 
-    await this.validateUniqueness(station, existing);
+    const unique = await this.validateUniqueness(station, existing);
+    if (unique !== true) {
+      return unique as CommandResult<StationDTO>;
+    }
 
     try {
       const updateModel: UpdateStationModel = { ...station };
@@ -192,39 +230,66 @@ export class StationsService {
       if (!updated) {
         const msg = `Station with id "${id}" not found`;
         this.logger.error(`[updateStation] ${msg}`);
-        throw new NotFoundException(msg);
+        return { error: msg, type: 'notFound' };
       }
 
-      return stationModelToDTO(updated);
+      return { result: stationModelToDTO(updated) };
     } catch (ex) {
-      if (ex instanceof HttpException) throw ex;
-
       const msg = `Error during editing station with id ${id}`;
       this.logger.error(`[updateStation] ${msg}`, ex);
-      throw new InternalServerErrorException(msg);
+      return { error: msg };
     }
   }
 
-  async deleteStation(id: string): Promise<void> {
+  public async deleteStation(id: string): Promise<CommandResult> {
     const deleted = await this.stationsRepository.deleteStation(id);
 
     if (!deleted) {
-      throw new NotFoundException(`Station with id "${id}" not found`);
+      const msg = `Station with id "${id}" not found`;
+      this.logger.error(`[deleteStation] ${msg}`);
+      return { error: msg, type: 'notFound' };
     }
+
+    return true;
+  }
+
+  private async getCurrentStation(): Promise<
+    CommandResult<CurrentStationModel>
+  > {
+    const url = this.mpdClient.url;
+    let station: StationModel | null = null;
+
+    if (url !== null) {
+      station = await this.stationsRepository.getStationByUrl(url);
+    } else {
+      const cachedStationId =
+        await this.cacheService.get<string>(CACHED_STATION_ID);
+
+      if (cachedStationId === null) return { result: null };
+
+      station = await this.stationsRepository.getStationById(cachedStationId);
+    }
+
+    if (station === null) return { result: { id: null } };
+
+    return {
+      result: station,
+    };
   }
 
   private async validateUniqueness(
     { name, url }: UpdateStationDTO,
     existing?: StationModel,
-  ): Promise<void> {
+  ): Promise<CommandResult> {
     if (name && (!existing || name !== existing.name)) {
       const stationWithSameName =
         await this.stationsRepository.getStationByName(name);
 
       if (stationWithSameName) {
-        throw new ConflictException(
-          `Station with name "${name}" already exists`,
-        );
+        return {
+          error: `Station with name "${name}" already exists`,
+          type: 'conflict',
+        };
       }
     }
 
@@ -233,9 +298,14 @@ export class StationsService {
         await this.stationsRepository.getStationByUrl(url);
 
       if (stationWithSameUrl) {
-        throw new ConflictException(`Station with url "${url}" already exists`);
+        return {
+          error: `Station with url "${url}" already exists`,
+          type: 'conflict',
+        };
       }
     }
+
+    return true;
   }
 
   private async initStations(): Promise<void> {
@@ -245,8 +315,10 @@ export class StationsService {
     let edited = 0;
     try {
       const stations = StationsSchema.parse(JSON.parse(stationsJson));
-      for (const [index, station] of stations.entries()) {
-        const existing = await this.stationsRepository.getStationByIdx(index);
+      for (const station of stations) {
+        const existing = await this.stationsRepository.getStationByUrl(
+          station.url,
+        );
         if (existing !== null) {
           const { id, ...rest } = existing;
           await this.stationsRepository.updateStation(id, {
@@ -255,9 +327,10 @@ export class StationsService {
           });
           edited++;
         } else {
+          const idx = await this.stationsRepository.getMaxIdx();
           await this.stationsRepository.createStation({
             ...station,
-            idx: index,
+            idx,
           });
           added++;
         }

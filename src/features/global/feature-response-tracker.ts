@@ -22,14 +22,16 @@ export class FeatureResponseTracker {
 
   public wait(
     key: string,
-    expected: string[],
+    expectedCollection: string[] | Set<string>,
     timeoutMs: number = 5000,
   ): Promise<FeatureCommunicationResult> {
     this.reset(key);
 
     return new Promise((resolve) => {
+      const expected = new Set(expectedCollection);
+
       const pending: PendingCommunication = {
-        expected: new Set(expected),
+        expected,
         responded: new Set(),
         resolve,
         timeout: setTimeout(() => {
@@ -39,7 +41,7 @@ export class FeatureResponseTracker {
 
       this.pending.set(key, pending);
 
-      if (expected.length === 0) {
+      if (expected.size === 0) {
         this.finish(key, false, false);
       }
     });

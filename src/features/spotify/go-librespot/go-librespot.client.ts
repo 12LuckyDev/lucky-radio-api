@@ -1,14 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import {
-  CommandResult,
-  PlayerClient,
-  PlayerStatusDTO,
-} from 'src/features/shared';
+import { CommandResult, PlayerClient, PlayerState } from 'src/features/shared';
 import { GoLibrespotApiClient } from './go-librespot-api-client';
 import { GoLibrespotSocketWatcher } from './go-librespot-socket-watcher';
 import { GoLibrespotStatusMapper } from './mappers/go-librespot-status-mapper';
-import { combineLatest, distinctUntilChanged, map, Observable } from 'rxjs';
-import { compareGoLibrespotStatus } from './utils/compare-go-librespot-status';
+import { distinctUntilChanged, map, Observable } from 'rxjs';
+import { LibrespotStatus } from './models';
 
 const goLibrespotError = 'go-librespot error';
 
@@ -19,38 +15,37 @@ export class GoLibrespotClient extends PlayerClient {
     private readonly watcher: GoLibrespotSocketWatcher,
   ) {
     super(GoLibrespotClient.name);
-    this.watcher.lastConnectingAttempt$.subscribe(
-      (date) => (this.lastConnectingAttempt = date),
-    );
+
     this.watcher.connected$.subscribe((connected) =>
       this.changeConnected(connected),
     );
-    // todo maybe optional parametr in super - volume$?
-    this.watcher.volume$.subscribe((volume) => this.changeVolume(volume));
+
+    // TODO REMOVE
+    this.watcher.status$
+      .pipe(
+        map((s) => GoLibrespotStatusMapper.toVolume(s)),
+        distinctUntilChanged(),
+      )
+      .subscribe((volume) => this.changeVolume(volume));
+
+    // TODO REMOVE
+    this.watcher.status$
+      .pipe(
+        map((s) => GoLibrespotStatusMapper.toPlayerState(s)),
+        distinctUntilChanged(),
+      )
+      .subscribe((state) => this.changeState(state));
   }
 
-  public get statusUpdate$(): Observable<PlayerStatusDTO> {
-    return combineLatest([
-      this.connected$,
-      this.watcher.status$.pipe(distinctUntilChanged(compareGoLibrespotStatus)),
-    ]).pipe(
-      map(([connected, status]) => ({
-        connected: status !== null && connected,
-        lastConnectingAttempt: this.lastConnectingAttempt,
-        status: GoLibrespotStatusMapper.toPlayerStatusData(status),
-      })),
-    );
+  public get status$(): Observable<LibrespotStatus | null> {
+    return this.watcher.status$;
   }
 
-  public async getStatus(): Promise<PlayerStatusDTO> {
+  public async getState(): Promise<PlayerState> {
     try {
       const status = await this.apiClient.getStatus();
 
-      return {
-        connected: status !== null && this.connected,
-        lastConnectingAttempt: this.lastConnectingAttempt,
-        status: GoLibrespotStatusMapper.toPlayerStatusData(status),
-      };
+      return GoLibrespotStatusMapper.toPlayerState(status);
     } catch (ex) {
       this.logger.error(`[getStatus] ${goLibrespotError}`, ex);
       throw ex;
@@ -75,5 +70,9 @@ export class GoLibrespotClient extends PlayerClient {
       this.logger.error(`[getVolume] error during obtaining volume`, ex);
       return null;
     }
+  }
+
+  public async forceStop(): Promise<void> {
+    await this.apiClient.pause();
   }
 }

@@ -1,26 +1,29 @@
 import mpd, { MPD } from 'mpd2';
 import { MpdStatusModel } from './models/mpd-status.model';
 import { MpdConfigModel } from './models/mpd-config.model';
-import { BehaviorSubject, combineLatest, map, Observable } from 'rxjs';
-import {
-  CommandResult,
-  PlayerClient,
-  PlayerStatusDTO,
-} from 'src/features/shared';
+import { BehaviorSubject } from 'rxjs';
+import { CommandResult, PlayerClient, PlayerState } from 'src/features/shared';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 const noMpdConnected = 'No MPD connected';
+const noMpdConnectedResult: CommandResult = {
+  error: noMpdConnected,
+  type: 'forbidden',
+};
 const mpdError = 'MPD error';
+const mpdErrorResult: CommandResult = {
+  error: mpdError,
+  type: 'forbidden',
+};
+
+//TODO mpdstatus Observable
 
 @Injectable()
 export class MpdClient extends PlayerClient {
   private connectingInProgress: boolean = false;
   private client: MPD.Client | null = null;
 
-  private readonly stateSubject = new BehaviorSubject<
-    'play' | 'stop' | 'pause'
-  >('stop');
   private readonly urlSubject = new BehaviorSubject<string | null>(null);
 
   public readonly url$ = this.urlSubject.asObservable();
@@ -28,7 +31,7 @@ export class MpdClient extends PlayerClient {
   private readonly config: MpdConfigModel;
 
   constructor(private readonly configService: ConfigService) {
-    super(PlayerClient.name);
+    super(MpdClient.name);
 
     this.config = {
       host: this.configService.get<string>('MPD_HOST') ?? 'localhost',
@@ -42,32 +45,15 @@ export class MpdClient extends PlayerClient {
     return this.urlSubject.value;
   }
 
-  public get statusUpdate$(): Observable<PlayerStatusDTO> {
-    return combineLatest([
-      this.connected$,
-      this.stateSubject.asObservable(),
-    ]).pipe(
-      map(([connected, state]) => ({
-        connected,
-        lastConnectingAttempt: this.lastConnectingAttempt,
-        status: { state },
-      })),
-    );
-  }
-
-  public async getStatus(): Promise<PlayerStatusDTO> {
+  public async getState(): Promise<PlayerState> {
     const mpdStatus = await this.getMpdStatus();
-    return {
-      connected: this.connected,
-      lastConnectingAttempt: this.lastConnectingAttempt,
-      status: mpdStatus !== null ? { state: mpdStatus.state } : null,
-    };
+    return mpdStatus?.state ?? 'stop';
   }
 
   public async playStream(url: string): Promise<CommandResult> {
     if (this.client === null) {
       this.logger.warn(`[playStream] ${noMpdConnected}`);
-      return { error: noMpdConnected };
+      return noMpdConnectedResult;
     }
 
     try {
@@ -82,7 +68,7 @@ export class MpdClient extends PlayerClient {
     } catch (ex: unknown) {
       const error = ex as MPD.MPDError;
       this.logger.error(`[playStream] ${mpdError}`, error);
-      return { error: mpdError };
+      return mpdErrorResult;
     }
 
     return true;
@@ -91,7 +77,7 @@ export class MpdClient extends PlayerClient {
   public async stopStream(): Promise<CommandResult> {
     if (this.client === null) {
       this.logger.warn(`[stopStream] ${noMpdConnected}`);
-      return { error: noMpdConnected };
+      return noMpdConnectedResult;
     }
 
     try {
@@ -100,7 +86,7 @@ export class MpdClient extends PlayerClient {
     } catch (ex: unknown) {
       const error = ex as MPD.MPDError;
       this.logger.error(`[stopStream] ${mpdError}`, error);
-      return { error: mpdError };
+      return mpdErrorResult;
     }
 
     return true;
@@ -109,7 +95,7 @@ export class MpdClient extends PlayerClient {
   public async setVolume(volume: number): Promise<CommandResult> {
     if (this.client === null) {
       this.logger.warn(`[setVolume] ${noMpdConnected}`);
-      return { error: noMpdConnected };
+      return noMpdConnectedResult;
     }
 
     try {
@@ -117,7 +103,7 @@ export class MpdClient extends PlayerClient {
     } catch (ex: unknown) {
       const error = ex as MPD.MPDError;
       this.logger.error(`[setVolume] ${mpdError}`, error);
-      return { error: mpdError };
+      return mpdErrorResult;
     }
 
     return true;
@@ -128,13 +114,16 @@ export class MpdClient extends PlayerClient {
     return mpdStatus?.volume ?? null;
   }
 
+  public async forceStop(): Promise<void> {
+    await this.stopStream();
+  }
+
   private async connectMpd(): Promise<void> {
     if (this.connectingInProgress) return;
     this.connectingInProgress = true;
 
     while (this.client === null) {
       try {
-        this.lastConnectingAttempt = new Date();
         this.client = await mpd.connect(this.config);
         this.logger.log('[connectMpd] Connected to MPD');
       } catch (ex) {
@@ -224,9 +213,7 @@ export class MpdClient extends PlayerClient {
     this.changeConnected(status !== null);
 
     const { state, volume } = status ?? { state: 'stop', volume: 0 };
-    if (this.stateSubject.value !== state) {
-      this.stateSubject.next(state);
-    }
+    this.changeState(state);
     this.changeVolume(volume);
 
     const url = await this.getCurrentUrl();

@@ -1,6 +1,6 @@
 import {
-  playerStatusWithTypeDTOSchema,
-  PlayerStatusWithTypeDTO,
+  PlayerStateWithTypeDTO,
+  playerStateWithTypeDTOSchema,
 } from 'src/features/shared';
 import {
   CurrentStationInfoDTO,
@@ -17,8 +17,8 @@ export type AppEvent =
       data: 'stations-update';
     }
   | {
-      type: 'player.status-update';
-      data: PlayerStatusWithTypeDTO;
+      type: 'player.state-update';
+      data: PlayerStateWithTypeDTO;
     }
   | {
       type: 'global-volume-change';
@@ -60,10 +60,25 @@ export const appEventSchema = {
       properties: {
         type: {
           type: 'string',
-          enum: ['player.status-update'],
-          example: 'player.status-update',
+          enum: ['player.state-update'],
+          example: 'player.state-update',
         },
-        data: playerStatusWithTypeDTOSchema,
+        data: playerStateWithTypeDTOSchema,
+      },
+      required: ['type', 'data'],
+    },
+    {
+      type: 'object',
+      properties: {
+        type: {
+          type: 'string',
+          enum: ['global-volume-change'],
+          example: 'global-volume-change',
+        },
+        data: {
+          type: 'number',
+          example: 100,
+        },
       },
       required: ['type', 'data'],
     },

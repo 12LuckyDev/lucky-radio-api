@@ -1,9 +1,8 @@
 import { Module } from '@nestjs/common';
 import { MpdClient } from './mpd.client';
-import { MpdService } from './mpd.service';
 
 @Module({
-  providers: [MpdClient, MpdService],
-  exports: [MpdService],
+  providers: [MpdClient],
+  exports: [MpdClient],
 })
 export class MpdModule {}

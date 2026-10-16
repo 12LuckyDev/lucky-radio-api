@@ -1,9 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PlayerClient } from '../shared';
+import { PlayerClient, PlayerService } from '../shared';
 import { CacheService } from 'src/cache/cache.service';
-import { filter, pairwise, switchMap } from 'rxjs';
+import { distinctUntilChanged, filter, pairwise, switchMap } from 'rxjs';
 import { FeatureResponseTracker } from './feature-response-tracker';
 import { AppEventsService } from 'src/app-events/app-events.service';
+import { PlayersStatusService } from './players-status.service';
 
 const VOLUME_TRACKER_KEY = 'VOLUME';
 
@@ -14,7 +15,10 @@ const DEFAULT_VOLUME = 100;
 export class PlayersRegistry {
   private readonly logger = new Logger(PlayersRegistry.name);
 
-  private readonly players = new Map<string, PlayerClient>();
+  private readonly players = new Map<
+    string,
+    { client: PlayerClient; player: PlayerService }
+  >();
 
   private lastTargetVolume: number = DEFAULT_VOLUME;
 
@@ -22,28 +26,31 @@ export class PlayersRegistry {
     private readonly cacheService: CacheService,
     private readonly tracker: FeatureResponseTracker,
     private readonly appEventsService: AppEventsService,
+    private readonly statusService: PlayersStatusService,
   ) {}
 
-  private get activePlayers(): string[] {
-    return Array.from(this.players.entries())
-      .filter((row) => row[1].connected)
-      .map(([key]) => key);
-  }
-
-  public register(name: string, client: PlayerClient): void {
+  public register(
+    name: string,
+    client: PlayerClient,
+    player: PlayerService,
+  ): void {
     this.logger.log(`${name} registered`);
-    this.players.set(name, client);
+    this.players.set(name, { client, player });
 
     this.initConnectionSubscribers(name, client);
-    this.initVolumeSubscribers(name, client);
+    this.initStateSubscribers(name, player);
+    this.initVolumeSubscribers(name, player);
   }
 
   public async setGlobalVolume(volume: number): Promise<void> {
     this.lastTargetVolume = volume;
     this.tracker.reset(VOLUME_TRACKER_KEY);
-    const request = this.tracker.wait(VOLUME_TRACKER_KEY, this.activePlayers);
+    const request = this.tracker.wait(
+      VOLUME_TRACKER_KEY,
+      this.statusService.status.connectedPlayers,
+    );
 
-    this.players.forEach((client) => {
+    this.players.forEach(({ client }) => {
       void client.setVolume(volume);
     });
 
@@ -66,10 +73,38 @@ export class PlayersRegistry {
     return this.getCachedVolume();
   }
 
-  private initVolumeSubscribers(name: string, client: PlayerClient): void {
-    client.volume$.subscribe((volume) => {
+  private async forceStopOtherPlayers(skip: string): Promise<void> {
+    for (const [k, v] of this.statusService.status.playerStates) {
+      if (k !== skip && v === 'play') {
+        const player = this.players.get(k);
+
+        if (player) {
+          await player.client.forceStop();
+          this.logger.log(
+            `Player ${k} paused because "${skip}" player start playing`,
+          );
+        }
+      }
+    }
+  }
+
+  private initVolumeSubscribers(name: string, player: PlayerService): void {
+    player.volume$.pipe(distinctUntilChanged()).subscribe((volume) => {
       if (this.lastTargetVolume === volume) {
         this.tracker.response(VOLUME_TRACKER_KEY, name);
+      }
+    });
+  }
+
+  private initStateSubscribers(name: string, player: PlayerService): void {
+    player.state$.pipe(distinctUntilChanged()).subscribe((state) => {
+      this.statusService.updatePlayerState(name, state);
+      this.appEventsService.emit({
+        type: 'player.state-update',
+        data: { state, type: name },
+      });
+      if (state === 'play') {
+        void this.forceStopOtherPlayers(name);
       }
     });
   }
@@ -77,6 +112,7 @@ export class PlayersRegistry {
   private initConnectionSubscribers(name: string, client: PlayerClient): void {
     client.connected$.subscribe((connected) => {
       this.logger.log(`Client ${name} ${connected ? 'connect' : 'disconect'}`);
+      this.statusService.updateConnection(name, connected);
     });
 
     client.connected$
