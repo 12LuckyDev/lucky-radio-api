@@ -27,4 +27,20 @@ export class CommandResultMapper {
 
     return result.result;
   }
+
+  public static getResult<T>(result: CommandResult<T>, fallback: T): T;
+  public static getResult<T>(
+    result: CommandResult<T>,
+    fallback?: null,
+  ): T | null;
+  public static getResult<T>(
+    result: CommandResult<T>,
+    fallback: T | null = null,
+  ): T | null {
+    if (typeof result !== 'boolean' && 'result' in result) {
+      return result.result;
+    }
+
+    return fallback;
+  }
 }

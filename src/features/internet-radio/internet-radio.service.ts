@@ -6,7 +6,7 @@ import {
   type PlayerStateDTO,
 } from '../shared';
 import { MpdClient } from './mpd/mpd.client';
-import { Observable } from 'rxjs';
+import { map, Observable } from 'rxjs';
 import { PlayersRegistry } from '../global/players-registry';
 
 @Injectable()
@@ -16,17 +16,21 @@ export class InternetRadioService extends PlayerService {
     private readonly playersRegistry: PlayersRegistry,
   ) {
     super('i-radio');
-    this.playersRegistry.register(this.name, this.mpdClient, this);
+    this.playersRegistry.register(this.name, this);
   }
 
-  // MDPclient ma jeden observable na mpdstatus - ten serwis rozdziela je
+  public get connected$(): Observable<boolean> {
+    return this.mpdClient.mdpStatus$.pipe(map((status) => status !== null));
+  }
 
   public get volume$(): Observable<number> {
-    return this.mpdClient.volume$;
+    return this.mpdClient.mdpStatus$.pipe(map((status) => status?.volume ?? 0));
   }
 
   public get state$(): Observable<PlayerState> {
-    return this.mpdClient.state$;
+    return this.mpdClient.mdpStatus$.pipe(
+      map((status) => status?.state ?? 'stop'),
+    );
   }
 
   public async playStream(url: string): Promise<CommandResult> {
@@ -37,8 +41,21 @@ export class InternetRadioService extends PlayerService {
     return this.mpdClient.stopStream();
   }
 
+  public async getVolume(): Promise<CommandResult<number>> {
+    const status = await this.mpdClient.getMpdStatus();
+    return { result: status?.volume ?? 0 };
+  }
+
+  public async setVolume(volume: number): Promise<CommandResult> {
+    return this.mpdClient.setVolume(volume);
+  }
+
   public async getState(): Promise<CommandResult<PlayerStateDTO>> {
-    const state = await this.mpdClient.getState();
-    return { result: { state } };
+    const status = await this.mpdClient.getMpdStatus();
+    return { result: { state: status?.state ?? 'stop' } };
+  }
+
+  public async forceStop(): Promise<void> {
+    await this.stopStream();
   }
 }

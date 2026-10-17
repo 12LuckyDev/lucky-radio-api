@@ -1,7 +1,8 @@
 import { Logger } from '@nestjs/common';
 import { Observable } from 'rxjs';
-// import { CommandResult } from '../../command-result';
+import { CommandResult } from '../../command-result';
 import { PlayerState } from '../models/player-state';
+import { PlayerStateDTO } from '../dto/player-state.dto';
 
 export abstract class PlayerService {
   protected readonly name: string;
@@ -12,12 +13,12 @@ export abstract class PlayerService {
     this.logger = new Logger(name);
   }
 
+  abstract get connected$(): Observable<boolean>;
   abstract get volume$(): Observable<number>;
   abstract get state$(): Observable<PlayerState>;
 
-  //   abstract getState(): Promise<PlayerState>;
-
-  //   abstract getVolume(): Promise<number | null>;
-  //   abstract setVolume(volume: number): Promise<CommandResult>;
-  //   abstract forceStop(): Promise<void>;
+  abstract getState(): Promise<CommandResult<PlayerStateDTO>>;
+  abstract getVolume(): Promise<CommandResult<number>>;
+  abstract setVolume(volume: number): Promise<CommandResult>;
+  abstract forceStop(): Promise<void>;
 }

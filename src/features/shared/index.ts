@@ -1,4 +1,3 @@
-export * from './player/abstraction/player-client';
 export * from './player/abstraction/player-service';
 
 export * from './command-result';
