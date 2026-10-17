@@ -7,7 +7,7 @@ import {
 } from '../shared';
 import { PlayersRegistry } from '../global/players-registry';
 import { map, Observable } from 'rxjs';
-import { GoLibrespotStatusMapper } from './go-librespot/mappers/go-librespot-status-mapper';
+import { GoLibrespotStatusMapper } from './go-librespot/utils/go-librespot-status-mapper';
 import { GoLibrespotApiClient } from './go-librespot/go-librespot-api-client';
 import { GoLibrespotSocketWatcher } from './go-librespot/go-librespot-socket-watcher';
 

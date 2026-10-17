@@ -5,6 +5,7 @@ import { BehaviorSubject } from 'rxjs';
 import { CommandResult } from 'src/features/shared';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { MpdParser } from './utils/mpd-parser';
 
 const noMpdConnected = 'No MPD connected';
 const noMpdConnectedResult: CommandResult = {
@@ -150,49 +151,36 @@ export class MpdClient {
     await this.connectMpd();
   }
 
+  // TODO CommandResult
   private async getCurrentUrl(): Promise<string | null> {
     try {
       if (this.client === null) return null;
 
       const current = await this.client.sendCommand('currentsong');
-      const parsed = mpd.parseObject(current);
-
-      if (!!parsed && 'file' in parsed && typeof parsed.file === 'string') {
-        return parsed.file;
-      }
-
-      return null;
+      return MpdParser.toMpdCurrentFile(current);
     } catch (ex: unknown) {
       this.logger.error(
-        '[getCurrentUrl] [on close] error on trying to send command currentsong',
+        '[getCurrentUrl] error on trying to send command currentsong',
         ex,
       );
       return null;
     }
   }
 
+  // TODO CommandResult
   public async getMpdStatus(): Promise<MpdStatusModel | null> {
-    if (this.client === null) {
+    try {
+      if (this.client === null) return null;
+
+      const status = await this.client.sendCommand('status');
+      return MpdParser.toMpdStatusModel(status);
+    } catch (ex: unknown) {
+      this.logger.error(
+        '[getMpdStatus] error on trying to send command status',
+        ex,
+      );
       return null;
     }
-    const status = await this.client.sendCommand('status');
-    const parsed = mpd.parseObject(status);
-
-    if (
-      'volume' in parsed &&
-      typeof parsed.volume === 'number' &&
-      'state' in parsed &&
-      (parsed.state === 'play' ||
-        parsed.state === 'stop' ||
-        parsed.state === 'pause')
-    ) {
-      return {
-        volume: parsed.volume,
-        state: parsed.state,
-      };
-    }
-
-    return null;
   }
 
   private async updateStateSubjects(): Promise<void> {

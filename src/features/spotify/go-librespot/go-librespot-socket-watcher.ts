@@ -8,7 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { LibrespotEvent, LibrespotStatus } from './models';
 import { GoLibrespotApiClient } from './go-librespot-api-client';
 import { BehaviorSubject } from 'rxjs';
-import { WebSocketClient } from './web-socket-client';
+import { WebSocketClient } from '../../shared';
 
 @Injectable()
 export class GoLibrespotSocketWatcher implements OnModuleInit, OnModuleDestroy {
