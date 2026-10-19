@@ -6,6 +6,10 @@ import {
   CurrentStationInfoDTO,
   currentStationInfoDTOSchema,
 } from 'src/features/internet-radio/stations/dto/current-station.dto';
+import {
+  CurrentSongInfoDTO,
+  currentSongInfoDTOSchema,
+} from 'src/features/spotify/dto/current-song-info.dto';
 
 export type AppEvent =
   | {
@@ -23,6 +27,10 @@ export type AppEvent =
   | {
       type: 'global-volume-change';
       data: number | { error: string };
+    }
+  | {
+      type: 'spotify.current-update';
+      data: CurrentSongInfoDTO;
     };
 
 export const appEventSchema = {
@@ -79,6 +87,18 @@ export const appEventSchema = {
           type: 'number',
           example: 100,
         },
+      },
+      required: ['type', 'data'],
+    },
+    {
+      type: 'object',
+      properties: {
+        type: {
+          type: 'string',
+          enum: ['spotify.current-update'],
+          example: 'spotify.current-update',
+        },
+        data: currentSongInfoDTOSchema,
       },
       required: ['type', 'data'],
     },

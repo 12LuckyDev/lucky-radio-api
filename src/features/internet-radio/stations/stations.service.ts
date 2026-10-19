@@ -26,7 +26,7 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { areCurrentStationInfoEqual } from './utils/const are-current-station-info-equal';
 import { AppEventsService } from 'src/app-events/app-events.service';
 import { CacheService } from 'src/cache/cache.service';
-import { CommandResult } from 'src/features/shared';
+import { CommandResult, CommandResultMapper } from 'src/features/shared';
 import { CurrentStationModel } from './models/current-station.model';
 import { MpdClient } from '../mpd/mpd.client';
 
@@ -63,11 +63,7 @@ export class StationsService {
       this.stationsUpdated$,
     ).pipe(
       switchMap(async () => await this.getCurrentStationInfo()),
-      map((current) =>
-        typeof current !== 'boolean' && 'result' in current
-          ? current.result
-          : null,
-      ),
+      map((current) => CommandResultMapper.getResult(current)),
       filter((current) => current !== null),
       distinctUntilChanged(areCurrentStationInfoEqual),
       tap(({ station }) => {

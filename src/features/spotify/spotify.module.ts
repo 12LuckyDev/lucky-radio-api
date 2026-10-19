@@ -2,6 +2,7 @@ import { DynamicModule, Module } from '@nestjs/common';
 import { RouterModule, Routes } from '@nestjs/core';
 import { GoLibrespotModule } from './go-librespot/go-librespot.module';
 import { SpotifyService } from './spotify.service';
+import { SpotifyController } from './spotify.controller';
 
 const PREFIX = 'spotify';
 
@@ -14,6 +15,7 @@ export class SpotifyModule {
       module: SpotifyModule,
       imports: [GoLibrespotModule, RouterModule.register(routes)],
       providers: [SpotifyService],
+      controllers: [SpotifyController],
     };
   }
 }

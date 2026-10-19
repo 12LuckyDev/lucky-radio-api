@@ -6,21 +6,31 @@ import {
   PlayerStateDTO,
 } from '../shared';
 import { PlayersRegistry } from '../global/players-registry';
-import { map, Observable } from 'rxjs';
-import { GoLibrespotStatusMapper } from './go-librespot/utils/go-librespot-status-mapper';
+import { distinctUntilChanged, map, Observable } from 'rxjs';
 import { GoLibrespotApiClient } from './go-librespot/go-librespot-api-client';
 import { GoLibrespotSocketWatcher } from './go-librespot/go-librespot-socket-watcher';
+import { compareCurrentSong, GoLibrespotStatusMapper } from './utils';
+import { AppEventsService } from 'src/app-events/app-events.service';
+import { CurrentSongInfoDTO } from './dto/current-song-info.dto';
 
 @Injectable()
 export class SpotifyService extends PlayerService {
   constructor(
     private readonly goLibrespotWatcher: GoLibrespotSocketWatcher,
     private readonly goLibrespotApiClient: GoLibrespotApiClient,
-
     private readonly playersRegistry: PlayersRegistry,
+    private readonly appEventsService: AppEventsService,
   ) {
     super('spotify');
     this.playersRegistry.register(this.name, this);
+    this.goLibrespotWatcher.status$
+      .pipe(
+        map((status) => GoLibrespotStatusMapper.toCurrentSong(status)),
+        distinctUntilChanged(compareCurrentSong),
+      )
+      .subscribe((data) =>
+        this.appEventsService.emit({ type: 'spotify.current-update', data }),
+      );
   }
 
   public get connected$(): Observable<boolean> {
@@ -82,6 +92,20 @@ export class SpotifyService extends PlayerService {
     } catch (ex) {
       const msg = 'Error during setting volum';
       this.logger.error(`[setVolume] ${msg}`, ex);
+      return { error: msg };
+    }
+  }
+
+  public async getCurrent(): Promise<CommandResult<CurrentSongInfoDTO>> {
+    try {
+      const status = await this.goLibrespotApiClient.getStatus();
+
+      return {
+        result: GoLibrespotStatusMapper.toCurrentSong(status),
+      };
+    } catch (ex: unknown) {
+      const msg = 'Error during obtaining state';
+      this.logger.error(`[getVolume] ${msg}`, ex);
       return { error: msg };
     }
   }
