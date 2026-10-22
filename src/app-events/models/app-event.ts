@@ -10,6 +10,10 @@ import {
   CurrentSongInfoDTO,
   currentSongInfoDTOSchema,
 } from 'src/features/spotify/dto/current-song-info.dto';
+import {
+  DeviceInfoDTO,
+  deviceInfoDTOSchema,
+} from 'src/features/spotify/dto/device-info.dto';
 
 export type AppEvent =
   | {
@@ -31,6 +35,10 @@ export type AppEvent =
   | {
       type: 'spotify.current-update';
       data: CurrentSongInfoDTO;
+    }
+  | {
+      type: 'spotify.device-update';
+      data: DeviceInfoDTO;
     };
 
 export const appEventSchema = {
@@ -99,6 +107,18 @@ export const appEventSchema = {
           example: 'spotify.current-update',
         },
         data: currentSongInfoDTOSchema,
+      },
+      required: ['type', 'data'],
+    },
+    {
+      type: 'object',
+      properties: {
+        type: {
+          type: 'string',
+          enum: ['spotify.device-update'],
+          example: 'spotify.device-update',
+        },
+        data: deviceInfoDTOSchema,
       },
       required: ['type', 'data'],
     },

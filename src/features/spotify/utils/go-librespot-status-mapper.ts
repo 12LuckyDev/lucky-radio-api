@@ -1,6 +1,9 @@
 import { PlayerState } from 'src/features/shared';
 import { LibrespotStatus } from '../go-librespot/models';
 import { CurrentSongInfoDTO } from '../dto/current-song-info.dto';
+import { DeviceInfoDTO } from '../dto/device-info.dto';
+
+const unknown = 'unknown';
 
 export class GoLibrespotStatusMapper {
   public static toPlayerState(status: LibrespotStatus | null): PlayerState {
@@ -31,5 +34,22 @@ export class GoLibrespotStatusMapper {
     };
 
     return { song };
+  }
+
+  public static toDeviceInfo(model: LibrespotStatus | null): DeviceInfoDTO {
+    if (model === null) {
+      return {
+        name: null,
+        type: null,
+        username: null,
+      };
+    }
+
+    const { device_name, device_type, username } = model;
+    return {
+      name: device_name ? device_name : unknown,
+      type: device_type ? device_type : unknown,
+      username: username ? username : unknown,
+    };
   }
 }

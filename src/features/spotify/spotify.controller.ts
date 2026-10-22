@@ -10,6 +10,7 @@ import {
   CurrentSongInfoDTO,
   currentSongInfoDTOSchema,
 } from './dto/current-song-info.dto';
+import { DeviceInfoDTO, deviceInfoDTOSchema } from './dto/device-info.dto';
 
 @Controller()
 export class SpotifyController {
@@ -40,6 +41,20 @@ export class SpotifyController {
   })
   async getCurrentSong(): Promise<CurrentSongInfoDTO> {
     const result = await this.spotifyService.getCurrent();
+    return CommandResultMapper.map(result);
+  }
+
+  @Get('device')
+  @ApiOperation({
+    summary: 'Get current device information',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Current device',
+    schema: deviceInfoDTOSchema,
+  })
+  async getDeviceInfo(): Promise<DeviceInfoDTO> {
+    const result = await this.spotifyService.getDeviceInfo();
     return CommandResultMapper.map(result);
   }
 }

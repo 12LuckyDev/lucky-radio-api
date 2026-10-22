@@ -3,6 +3,7 @@ import { RouterModule, Routes } from '@nestjs/core';
 import { GoLibrespotModule } from './go-librespot/go-librespot.module';
 import { SpotifyService } from './spotify.service';
 import { SpotifyController } from './spotify.controller';
+import { SpotifyStateHandler } from './spotify-state-handler';
 
 const PREFIX = 'spotify';
 
@@ -14,7 +15,7 @@ export class SpotifyModule {
     return {
       module: SpotifyModule,
       imports: [GoLibrespotModule, RouterModule.register(routes)],
-      providers: [SpotifyService],
+      providers: [SpotifyService, SpotifyStateHandler],
       controllers: [SpotifyController],
     };
   }
