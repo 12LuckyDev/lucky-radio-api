@@ -25,12 +25,13 @@ export class GoLibrespotStatusMapper {
   ): CurrentSongInfoDTO {
     if (model === null || model.track === null) return { song: null };
 
-    const { name, album_name, artist_names } = model.track;
+    const { name, album_name, artist_names, album_cover_url } = model.track;
 
     const song = {
       name,
       authors: artist_names.join(','),
       album: album_name,
+      imageUrl: album_cover_url,
     };
 
     return { song };
