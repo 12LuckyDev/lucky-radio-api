@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Post } from '@nestjs/common';
 import {
   CommandResultMapper,
   PlayerStateDTO,
@@ -56,5 +56,31 @@ export class SpotifyController {
   async getDeviceInfo(): Promise<DeviceInfoDTO> {
     const result = await this.spotifyService.getDeviceInfo();
     return CommandResultMapper.map(result);
+  }
+
+  @Post('pause')
+  @ApiOperation({
+    summary: 'Pause current spotify song',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Spotify paused',
+  })
+  async postPause(): Promise<void> {
+    const result = await this.spotifyService.pause();
+    CommandResultMapper.map(result);
+  }
+
+  @Post('resume')
+  @ApiOperation({
+    summary: 'Resume current spotify song',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Spotify resumed',
+  })
+  async postResumr(): Promise<void> {
+    const result = await this.spotifyService.resume();
+    CommandResultMapper.map(result);
   }
 }

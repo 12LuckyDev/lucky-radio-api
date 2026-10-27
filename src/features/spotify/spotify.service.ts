@@ -39,6 +39,17 @@ export class SpotifyService extends PlayerService {
     return this.spotifyStateHandler.state$;
   }
 
+  public async resume(): Promise<CommandResult> {
+    try {
+      await this.goLibrespotApiClient.resume();
+      return true;
+    } catch (ex) {
+      const msg = 'Error during resume current song';
+      this.logger.error(`[resume] ${msg}`, ex);
+      return { error: msg };
+    }
+  }
+
   public async pause(): Promise<CommandResult> {
     try {
       await this.goLibrespotApiClient.pause();
