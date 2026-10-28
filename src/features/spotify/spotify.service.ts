@@ -61,6 +61,28 @@ export class SpotifyService extends PlayerService {
     }
   }
 
+  public async next(): Promise<CommandResult> {
+    try {
+      await this.goLibrespotApiClient.next();
+      return true;
+    } catch (ex) {
+      const msg = 'Error during playing next song';
+      this.logger.error(`[next] ${msg}`, ex);
+      return { error: msg };
+    }
+  }
+
+  public async prev(): Promise<CommandResult> {
+    try {
+      await this.goLibrespotApiClient.previous();
+      return true;
+    } catch (ex) {
+      const msg = 'Error during playing prev song';
+      this.logger.error(`[prev] ${msg}`, ex);
+      return { error: msg };
+    }
+  }
+
   public async getState(): Promise<CommandResult<PlayerStateDTO>> {
     return this.extractFromStatus(
       (status) => ({ state: GoLibrespotStatusMapper.toPlayerState(status) }),

@@ -79,8 +79,34 @@ export class SpotifyController {
     status: 200,
     description: 'Spotify resumed',
   })
-  async postResumr(): Promise<void> {
+  async postResume(): Promise<void> {
     const result = await this.spotifyService.resume();
+    CommandResultMapper.map(result);
+  }
+
+  @Post('next')
+  @ApiOperation({
+    summary: 'Play next spotify song',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Next song played',
+  })
+  async postNext(): Promise<void> {
+    const result = await this.spotifyService.next();
+    CommandResultMapper.map(result);
+  }
+
+  @Post('prev')
+  @ApiOperation({
+    summary: 'Play prev spotify song',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Prev song played',
+  })
+  async postPrev(): Promise<void> {
+    const result = await this.spotifyService.prev();
     CommandResultMapper.map(result);
   }
 }
