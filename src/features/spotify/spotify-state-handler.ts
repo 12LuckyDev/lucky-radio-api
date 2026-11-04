@@ -14,6 +14,7 @@ export class SpotifyStateHandler {
   private readonly stateSubject = new Subject<PlayerState>();
   private readonly currentSongSubject = new Subject<CurrentSongInfoDTO>();
   private readonly deviceInfoSubject = new Subject<DeviceInfoDTO>();
+  private readonly positionSubject = new Subject<number>();
 
   public readonly volume$ = this.volumeSubject.asObservable();
   public readonly state$ = this.stateSubject.asObservable();
@@ -33,6 +34,7 @@ export class SpotifyStateHandler {
         GoLibrespotStatusMapper.toCurrentSong(state),
       );
       this.deviceInfoSubject.next(GoLibrespotStatusMapper.toDeviceInfo(state));
+      this.positionSubject.next(GoLibrespotStatusMapper.toPosition(state));
     });
 
     this.currentSongSubject
@@ -46,5 +48,12 @@ export class SpotifyStateHandler {
       .subscribe((data) =>
         this.appEventsService.emit({ type: 'spotify.device-update', data }),
       );
+
+    this.positionSubject.pipe(distinctUntilChanged()).subscribe((data) =>
+      this.appEventsService.emit({
+        type: 'spotify-position-change',
+        data,
+      }),
+    );
   }
 }

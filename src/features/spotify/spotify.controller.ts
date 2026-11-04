@@ -1,4 +1,4 @@
-import { Controller, Get, Post } from '@nestjs/common';
+import { Controller, Get, Param, ParseIntPipe, Post } from '@nestjs/common';
 import {
   CommandResultMapper,
   PlayerStateDTO,
@@ -108,5 +108,43 @@ export class SpotifyController {
   async postPrev(): Promise<void> {
     const result = await this.spotifyService.prev();
     CommandResultMapper.map(result);
+  }
+
+  @Post('seek/:position')
+  @ApiOperation({
+    summary: 'Change position of current song',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Position changed',
+  })
+  async postSeek(
+    @Param('position', new ParseIntPipe()) position: number,
+  ): Promise<void> {
+    const result = await this.spotifyService.seek(position);
+    CommandResultMapper.map(result);
+  }
+
+  @Get('position')
+  @ApiOperation({
+    summary: 'Get current song position',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Current song position',
+    schema: {
+      type: 'object',
+      properties: {
+        position: {
+          type: 'number',
+          example: 100,
+        },
+      },
+      required: ['position'],
+    },
+  })
+  async getPosition(): Promise<{ position: number }> {
+    const result = await this.spotifyService.getPosition();
+    return CommandResultMapper.map(result);
   }
 }

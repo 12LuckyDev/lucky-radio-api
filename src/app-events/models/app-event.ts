@@ -39,6 +39,10 @@ export type AppEvent =
   | {
       type: 'spotify.device-update';
       data: DeviceInfoDTO;
+    }
+  | {
+      type: 'spotify-position-change';
+      data: number;
     };
 
 export const appEventSchema = {
@@ -119,6 +123,21 @@ export const appEventSchema = {
           example: 'spotify.device-update',
         },
         data: deviceInfoDTOSchema,
+      },
+      required: ['type', 'data'],
+    },
+    {
+      type: 'object',
+      properties: {
+        type: {
+          type: 'string',
+          enum: ['spotify-position-change'],
+          example: 'spotify-position-change',
+        },
+        data: {
+          type: 'number',
+          example: 100,
+        },
       },
       required: ['type', 'data'],
     },

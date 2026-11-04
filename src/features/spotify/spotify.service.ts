@@ -83,6 +83,17 @@ export class SpotifyService extends PlayerService {
     }
   }
 
+  public async seek(position: number): Promise<CommandResult> {
+    try {
+      await this.goLibrespotApiClient.seek({ position });
+      return true;
+    } catch (ex) {
+      const msg = 'Error during playing seeking';
+      this.logger.error(`[seek] ${msg}`, ex);
+      return { error: msg };
+    }
+  }
+
   public async getState(): Promise<CommandResult<PlayerStateDTO>> {
     return this.extractFromStatus(
       (status) => ({ state: GoLibrespotStatusMapper.toPlayerState(status) }),
@@ -119,6 +130,13 @@ export class SpotifyService extends PlayerService {
     return this.extractFromStatus(
       (status) => GoLibrespotStatusMapper.toDeviceInfo(status),
       'getDeviceInfo',
+    );
+  }
+
+  public async getPosition(): Promise<CommandResult<{ position: number }>> {
+    return this.extractFromStatus(
+      (status) => ({ position: GoLibrespotStatusMapper.toPosition(status) }),
+      'getPosition',
     );
   }
 

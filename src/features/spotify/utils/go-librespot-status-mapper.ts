@@ -25,16 +25,23 @@ export class GoLibrespotStatusMapper {
   ): CurrentSongInfoDTO {
     if (model === null || model.track === null) return { song: null };
 
-    const { name, album_name, artist_names, album_cover_url } = model.track;
+    const { name, album_name, artist_names, album_cover_url, duration, uri } =
+      model.track;
 
     const song = {
+      id: GoLibrespotStatusMapper.getTrackId(uri),
       name,
       authors: artist_names.join(','),
       album: album_name,
       imageUrl: album_cover_url,
+      duration,
     };
 
     return { song };
+  }
+
+  public static toPosition(model: LibrespotStatus | null): number {
+    return model?.track?.position ?? 0;
   }
 
   public static toDeviceInfo(model: LibrespotStatus | null): DeviceInfoDTO {
@@ -52,5 +59,16 @@ export class GoLibrespotStatusMapper {
       type: device_type ? device_type : unknown,
       username: username ? username : unknown,
     };
+  }
+
+  private static getTrackId(uri: string) {
+    let hash = 0x811c9dc5;
+
+    for (let i = 0; i < uri.length; i++) {
+      hash ^= uri.charCodeAt(i);
+      hash = Math.imul(hash, 0x01000193);
+    }
+
+    return (hash >>> 0).toString(36);
   }
 }

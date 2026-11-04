@@ -5,7 +5,7 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { LibrespotEvent, LibrespotStatus } from './models';
+import { LibrespotEvent, LibrespotStatus, SeekEvent } from './models';
 import { GoLibrespotApiClient } from './go-librespot-api-client';
 import { BehaviorSubject } from 'rxjs';
 import { WebSocketClient } from '../../shared';
@@ -116,6 +116,14 @@ export class GoLibrespotSocketWatcher implements OnModuleInit, OnModuleDestroy {
       case 'metadata': {
         const track = event.data as LibrespotStatus['track'];
         this.updateStatus({ track });
+        break;
+      }
+      case 'seek': {
+        const { position } = event.data as SeekEvent;
+        const track = this.statusSubject.value?.track;
+        if (track) {
+          this.updateStatus({ track: { ...track, position } });
+        }
         break;
       }
     }
