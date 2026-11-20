@@ -43,7 +43,6 @@ function setupSwagger(app: INestApplication): void {
   const config = new DocumentBuilder()
     .setTitle('Lucky Radio API')
     .setDescription('Lucky Radio API documentation')
-    .setVersion('1.0')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
@@ -69,10 +68,6 @@ async function bootstrap() {
       },
     }),
   );
-
-  app.setGlobalPrefix('v1', {
-    exclude: ['', 'health'],
-  });
 
   setupCors(app, configService);
   setupLogs(configService);
