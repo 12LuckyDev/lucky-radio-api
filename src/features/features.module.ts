@@ -17,7 +17,7 @@ export class FeaturesModule {
       imports: [
         GlobalModule,
         VolumeModule,
-        InternetRadioModule.register(addIRadioPrefix),
+        InternetRadioModule.register(addIRadioPrefix || addSpotifyModule),
         ...(addSpotifyModule ? [SpotifyModule.register()] : []),
       ],
     };

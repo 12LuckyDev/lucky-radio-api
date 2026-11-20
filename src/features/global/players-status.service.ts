@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { AppEventsService } from 'src/app-events/app-events.service';
 
 interface PlayersStatus {
@@ -9,6 +9,8 @@ interface PlayersStatus {
 
 @Injectable()
 export class PlayersStatusService {
+  private readonly logger = new Logger(PlayersStatusService.name);
+
   public readonly status: PlayersStatus = {
     connectedPlayers: new Set<string>(),
     playingPlayer: null,
@@ -64,7 +66,7 @@ export class PlayersStatusService {
   }
 
   private updateStatus(): void {
-    console.log(this.status);
+    this.logger.log(`[updateStatus] ${JSON.stringify(this.status)}`);
     //TODO send status by appEventsService
   }
 }
